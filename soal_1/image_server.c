@@ -117,7 +117,7 @@ void decrypt_service(int client_socket, const char *data) {
     if (fp) {
         fwrite(decoded, 1, decoded_len, fp);
         fclose(fp);
-        send(client_socket, data, strlen(data), 0);
+        send(client_socket, success_decode, strlen(success_decode), 0);
 
         write_log(client, decrypt, "Text Data");
         char info[FILE_SIZE];
