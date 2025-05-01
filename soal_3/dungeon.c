@@ -85,11 +85,19 @@ void* client_handler(void* arg) {
         } else if (strcmp(cmd, "2") == 0) {
             char *json = weapon_shop_list(weapons);
             send(player->socket, json, strlen(json), 0);
+            free(json);
+
             char weapon_name[BUFFER_SIZE];
             int recv_len = recv(player->socket, weapon_name, sizeof(weapon_name), 0);
+            if (recv_len == 0) {
+                perror("recv failed or connection closed");
+                return NULL;
+            }
+
             char *response = buy_weapon(player, weapons, weapon_name);
             send(player->socket, response, strlen(response), 0);
-            free(json);
+
+            free(response);
         } else if (strcmp(cmd, "5") == 0) {
             char *response = "Bye!";
             connected = 0;

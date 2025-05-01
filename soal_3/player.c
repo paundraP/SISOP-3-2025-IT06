@@ -20,7 +20,6 @@ typedef struct {
     int exist;
 } Player;
 
-
 void menu() {
     printf("===MAIN MENU===\n");
     printf("1. Show Player Stats\n");
@@ -53,37 +52,48 @@ void player_stats(const char *json_str, Player *p) {
 }
 
 void buy_weapon(Player *player, const char *json_str, int socket_fd) {
-    char *weapon_name = malloc(sizeof(weapon_name));
     cJSON *json = cJSON_Parse(json_str);
     if (!json) {
         fprintf(stderr, "Invalid JSON\n");
         return;
     }
+
     int size = cJSON_GetArraySize(json);
-    printf("Your gold: %d\n", player->gold);
+    printf("=== WEAPON SHOP ===\nYour gold: %d\n", player->gold);
+
     for (int i = 0; i < size; i++) {
         cJSON *w = cJSON_GetArrayItem(json, i);
         const char *name = cJSON_GetObjectItem(w, "name")->valuestring;
         int damage = cJSON_GetObjectItem(w, "damage")->valueint;
         int price = cJSON_GetObjectItem(w, "price")->valueint;
         const char *passive = cJSON_GetObjectItem(w, "passive")->valuestring;
-    
-        printf("Name: %s | Damage: %d | Price: %d | Bonus: %s\n", name, damage, price, passive);
+
+        printf("[%d] %s (Damage: %d, Price: %d, Passive: %s)\n", i + 1, name, damage, price, passive);
     }
-    printf("Choose the name of weapon you want to buy: ");
-    scanf("%s", weapon_name);
+
+    int choice;
+    printf("Choose weapon number to buy: ");
+    scanf("%d", &choice);
+    getchar();
+
+    if (choice < 1 || choice > size) {
+        printf("Invalid choice.\n");
+        cJSON_Delete(json);
+        return;
+    }
+
+    cJSON *weapon = cJSON_GetArrayItem(json, choice - 1);
+    const char *weapon_name = cJSON_GetObjectItem(weapon, "name")->valuestring;
+
     send(socket_fd, weapon_name, strlen(weapon_name), 0);
 
-    char buffer[BUFFER_SIZE] = {0};
-    int recv_len = recv(socket_fd, buffer, sizeof(buffer), 0);
-    if (recv_len == 0) {
-        printf("Failed to connect to server\n");
-        return;
-    } else {
-        printf("%s\n", buffer);
-    }
+    char response[BUFFER_SIZE] = {0};
+    recv(socket_fd, response, sizeof(response), 0);
+    printf("%s\n", response);
+
     cJSON_Delete(json);
 }
+
 
 int main() {
     struct sockaddr_in server_addr;
