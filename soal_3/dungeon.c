@@ -6,28 +6,10 @@
 #include <pthread.h>
 #include <cjson/cJSON.h>
 #include "shop.h"
+#include "dungeon.h"
 
 #define PORT 8080
 #define BUFFER_SIZE 8192
-#define MAX_WEAPONS 5
-
-typedef struct
-{
-    char name[256];
-    int price;
-    int damage;
-    char passive[256];
-} weapon;
-
-typedef struct {
-    int socket;
-    char ip[INET_ADDRSTRLEN];
-    int port;
-    int gold;
-    weapon equipped_weapon[256];
-    weapon *weapon_repository[MAX_WEAPONS];
-    int kill;
-} player_state;
 
 
 // constructor look-like untuk membuat "player"

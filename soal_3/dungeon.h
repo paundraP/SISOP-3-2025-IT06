@@ -17,7 +17,7 @@ typedef struct {
     char ip[INET_ADDRSTRLEN];
     int port;
     int gold;
-    weapon equipped_weapon;
+    weapon *equipped_weapon;
     weapon *weapon_repository[MAX_WEAPONS];
     int kill; 
 } player_state;
