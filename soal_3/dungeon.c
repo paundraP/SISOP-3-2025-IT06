@@ -18,20 +18,32 @@ player_state *create_player(int socket, const char *ip, int port) {
     if (!p) return NULL;
 
     p->socket = socket;
+    strncpy(p->ip, ip, INET_ADDRSTRLEN);
+    p->port = port;
     p->gold = 500;
-    strcpy(p->equipped_weapon->name, "Knife");
-    p->equipped_weapon->damage = 10;
+    p->kill = 0;
+
+    weapon *w = malloc(sizeof(weapon));
+    if (!w) {
+        free(p);
+        return NULL;
+    }
+
+    strcpy(w->name, "Knife");
+    w->damage = 10;
+    w->price = 0;
+    strcpy(w->passive, "None");
+
+    p->equipped_weapon = w;
 
     for (int i = 0; i < MAX_WEAPONS; i++) {
         p->weapon_repository[i] = NULL;
     }
-
-    p->kill = 0;
-    strncpy(p->ip, ip, INET_ADDRSTRLEN);
-    p->port = port;
+    p->weapon_repository[0] = w;
 
     return p;
 }
+
 
 char* player_stats(player_state *player) {
     cJSON *json = cJSON_CreateObject();
