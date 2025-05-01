@@ -5,12 +5,15 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <cjson/cJSON.h>
-#include "shop.h"
-#include "repository.h"
+#include "dungeon.h"
 
 #define PORT 8080
 #define BUFFER_SIZE 8192
 
+// logic for buying weapons
+weapon *create(char *name, int damage, int price, char *passive);
+char *weapon_shop_list(weapon **weapons);
+char *buy_weapon(player_state *player, weapon **weapons, const char *weapon_name);
 
 // constructor look-like untuk membuat "player"
 player_state *create_player(int socket, const char *ip, int port) {
@@ -26,7 +29,7 @@ player_state *create_player(int socket, const char *ip, int port) {
     weapon *w = malloc(sizeof(weapon));
     if (!w) {
         free(p);
-        return NULL;
+        return NULL; 
     }
 
     strcpy(w->name, "Knife");
@@ -48,7 +51,7 @@ player_state *create_player(int socket, const char *ip, int port) {
 char* player_stats(player_state *player) {
     cJSON *json = cJSON_CreateObject();
     cJSON_AddNumberToObject(json, "gold", player->gold);
-    cJSON_AddStringToObject(json, "equipped_weapon", player->equipped_weapon);
+    cJSON_AddStringToObject(json, "equipped_weapon", player->equipped_weapon->name);
     cJSON_AddNumberToObject(json, "damage", player->equipped_weapon->damage);
     cJSON_AddNumberToObject(json, "kill", player->kill);
     cJSON_AddStringToObject(json, "passive", player->equipped_weapon->passive);
@@ -60,6 +63,13 @@ char* player_stats(player_state *player) {
 
 void* client_handler(void* arg) {
     player_state* player = (player_state*)arg;
+    weapon *weapons[] = { 
+        create("Pentung", 500, 1000, "+50% Critical Damage"),
+        create("Cappucina", 200, 400, "+20% Magic Damage"),
+        create("Banana", 150, 200, ""),
+        create("Bombardilo", 500, 750, ""),
+        create("Sword", 400, 600, "+10% Critical Damage"),
+    };
     char cmd[8];
     int connected = 1;
 
@@ -73,7 +83,13 @@ void* client_handler(void* arg) {
             send(player->socket, response, strlen(response), 0);
             free(response);
         } else if (strcmp(cmd, "2") == 0) {
-            buy_weapon(player);
+            char *json = weapon_shop_list(weapons);
+            send(player->socket, json, strlen(json), 0);
+            char weapon_name[BUFFER_SIZE];
+            int recv_len = recv(player->socket, weapon_name, sizeof(weapon_name), 0);
+            char *response = buy_weapon(player, weapons, weapon_name);
+            send(player->socket, response, strlen(response), 0);
+            free(json);
         } else if (strcmp(cmd, "5") == 0) {
             char *response = "Bye!";
             connected = 0;

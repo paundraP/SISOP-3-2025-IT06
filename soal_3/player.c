@@ -5,11 +5,21 @@
 #include <arpa/inet.h>
 #include <time.h>
 #include <cjson/cJSON.h>
-#include "repository.h"
+#include "dungeon.h"
 
 #define SERVER_IP "127.0.0.1"
-#define SERVER_PORT 8080
+#define SERVER_PORT 8080 
 #define BUFFER_SIZE 8192
+
+typedef struct {
+    int gold;
+    char equipped_weapon[64];
+    int damage;
+    int kill;
+    char passive[128];
+    int exist;
+} Player;
+
 
 void menu() {
     printf("===MAIN MENU===\n");
@@ -21,28 +31,64 @@ void menu() {
     printf("Choose an option: ");
 }
 
-void player_stats(const char *json_str) {
+void player_stats(const char *json_str, Player *p) {
     cJSON *json = cJSON_Parse(json_str);
     if (!json) {
         fprintf(stderr, "Invalid JSON\n");
         return;
     }
 
-    int gold = cJSON_GetObjectItem(json, "gold")->valueint;
-    const char *equipped_weapon = cJSON_GetObjectItem(json, "equipped_weapon")->valuestring;
-    int damage = cJSON_GetObjectItem(json, "damage")->valueint;
-    int kill = cJSON_GetObjectItem(json, "kill")->valueint;
-    const char *passive = cJSON_GetObjectItem(json, "passive")->valuestring;
+    p->gold = cJSON_GetObjectItem(json, "gold")->valueint;
+    strncpy(p->equipped_weapon, cJSON_GetObjectItem(json, "equipped_weapon")->valuestring, sizeof(p->equipped_weapon));
+    p->damage = cJSON_GetObjectItem(json, "damage")->valueint;
+    p->kill = cJSON_GetObjectItem(json, "kill")->valueint;
+    strncpy(p->passive, cJSON_GetObjectItem(json, "passive")->valuestring, sizeof(p->passive));
+    p->exist = 1;
 
     printf("===YOUR STATISTIC===\n");
-    printf("Gold: %d\nEquipped Weapon: %s\nDamage: %d\nKills: %d\nPassive: %s\n", gold, equipped_weapon, damage, kill, passive);
+    printf("Gold: %d\nEquipped Weapon: %s\nDamage: %d\nKills: %d\nPassive: %s\n",
+           p->gold, p->equipped_weapon, p->damage, p->kill, p->passive);
 
+    cJSON_Delete(json);
+}
+
+void buy_weapon(Player *player, const char *json_str, int socket_fd) {
+    char *weapon_name = malloc(sizeof(weapon_name));
+    cJSON *json = cJSON_Parse(json_str);
+    if (!json) {
+        fprintf(stderr, "Invalid JSON\n");
+        return;
+    }
+    int size = cJSON_GetArraySize(json);
+    printf("Your gold: %d\n", player->gold);
+    for (int i = 0; i < size; i++) {
+        cJSON *w = cJSON_GetArrayItem(json, i);
+        const char *name = cJSON_GetObjectItem(w, "name")->valuestring;
+        int damage = cJSON_GetObjectItem(w, "damage")->valueint;
+        int price = cJSON_GetObjectItem(w, "price")->valueint;
+        const char *passive = cJSON_GetObjectItem(w, "passive")->valuestring;
+    
+        printf("Name: %s | Damage: %d | Price: %d | Bonus: %s\n", name, damage, price, passive);
+    }
+    printf("Choose the name of weapon you want to buy: ");
+    scanf("%s", weapon_name);
+    send(socket_fd, weapon_name, strlen(weapon_name), 0);
+
+    char buffer[BUFFER_SIZE] = {0};
+    int recv_len = recv(socket_fd, buffer, sizeof(buffer), 0);
+    if (recv_len == 0) {
+        printf("Failed to connect to server\n");
+        return;
+    } else {
+        printf("%s\n", buffer);
+    }
     cJSON_Delete(json);
 }
 
 int main() {
     struct sockaddr_in server_addr;
     int socket_fd, choice;
+    Player player = {0};
 
     socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_fd < 0) {
@@ -65,10 +111,10 @@ int main() {
         scanf("%d", &choice);
         getchar();
     
-        char choice;
-        snprintf(choice, sizeof(choice), "%d", choice);
+        char opt[8];
+        snprintf(opt, sizeof(opt), "%d", choice);
     
-        if (send(socket_fd, choice, strlen(choice), 0) < 0) {
+        if (send(socket_fd, opt, strlen(opt), 0) < 0) {
             perror("Send failed");
             break;
         }
@@ -81,11 +127,12 @@ int main() {
         }
 
         if (choice == 1) {
-            player_stats(buffer);
+            player_stats(buffer, &player);
+        } else if (choice == 2)  {
+            buy_weapon(&player, buffer, socket_fd);
         } else if (choice == 5) {
             printf("%s\n", buffer);
             return 0;
         }
     }
-    
 }

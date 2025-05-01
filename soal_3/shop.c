@@ -1,7 +1,8 @@
-#include "repository.h"
+#include "dungeon.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <cjson/cJSON.h>
 
 weapon *create(char *name, int damage, int price, char *passive) {
     weapon *tmp = malloc(sizeof(weapon));
@@ -15,52 +16,58 @@ weapon *create(char *name, int damage, int price, char *passive) {
     return tmp;
 }
 
-void weapon_list() {
-    printf("+----+----------------+--------+--------+-----------------------+\n");
-    printf("| No | %-14s | %-6s | %-6s | %-21s |\n", "Name", "Damage", "Price", "Bonus");
-    printf("+----+----------------+--------+--------+-----------------------+\n");
-    printf("| 1  | Pentung        | 500    | 1000   | +50% Critical Damage  |\n");
-    printf("| 2  | Cappucina      | 200    | 400    | +20% Magic Damage     |\n");
-    printf("| 3  | Banana         | 150    | 200    | None                  |\n");
-    printf("| 4  | Bombardilo     | 500    | 750    | None                  |\n");
-    printf("| 5  | Sword          | 400    | 600    | +10% Critical Damage  |\n");
-    printf("+----+----------------+--------+--------+-----------------------+\n");
-}
+char *weapon_shop_list(weapon **weapons) {
+    cJSON *weapons_json = cJSON_CreateArray();
 
-void buy_weapon(player_state *player) {
-    int choice;
-    weapon *weapons[] = { 
-        create("Pentung", 500, 1000, "+50% Critical Damage"),
-        create("Cappucina", 200, 400, "+20% Magic Damage"),
-        create("Banana", 150, 200, ""),
-        create("Bombardilo", 500, 750, ""),
-        create("Sword", 400, 600, "+10% Critical Damage"),
-    };
-
-    weapon_list();
-    printf("[GOLD: %d] Choose weapon to buy [1-5]: ", player->gold);
-    scanf("%d", &choice);
-
-    if (choice < 1 || choice > 5) {
-        printf("Invalid choice!\n");
-        return;
+    for (int i = 0; i < 5; i++) {
+        cJSON *w = cJSON_CreateObject();
+        cJSON_AddStringToObject(w, "name", weapons[i]->name);
+        cJSON_AddNumberToObject(w, "damage", weapons[i]->damage);
+        cJSON_AddNumberToObject(w, "price", weapons[i]->price);
+        cJSON_AddStringToObject(w, "passive", strlen(weapons[i]->passive) ? weapons[i]->passive : "None");
+        cJSON_AddItemToArray(weapons_json, w);
     }
 
-    weapon *selected = weapons[choice - 1];
+    char *json_str = cJSON_PrintUnformatted(weapons_json);
+    cJSON_Delete(weapons_json);
+    return json_str;
+}
+
+
+char *buy_weapon(player_state *player, weapon **weapons, char *weapon_name) {
+    weapon *selected = NULL;
+    for (int i = 0; i < MAX_WEAPONS; i++) {
+        if (strcmp(weapon_name, weapons[i]->name) == 0) {
+            selected = malloc(sizeof(weapon));
+            if (!selected) return strdup("Memory allocation failed.\n");
+            strcpy(selected->name, weapons[i]->name);
+            selected->damage = weapons[i]->damage;
+            selected->price = weapons[i]->price;
+            strcpy(selected->passive, weapons[i]->passive);
+            break;
+        }
+    }
+
+    if (!selected) {
+        return strdup("Weapon not found.\n");
+    }
 
     if (player->gold < selected->price) {
-        printf("Not enough gold!\n");
-        return;
+        free(selected);
+        return strdup("Not enough gold!\n");
     }
 
     for (int i = 0; i < MAX_WEAPONS; i++) {
         if (player->weapon_repository[i] == NULL) {
             player->weapon_repository[i] = selected;
             player->gold -= selected->price;
+            char *response = malloc(128);
+            snprintf(response, 128, "You successfully bought %s.\n", selected->name);
             printf("%s:%d bought %s!\n", player->ip, player->port, selected->name);
-            return;
+            return response;
         }
     }
 
-    printf("Weapon repository full!\n");
+    free(selected);
+    return strdup("Weapon repository full!\n");
 }
