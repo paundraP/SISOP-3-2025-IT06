@@ -5,23 +5,12 @@
 #include <arpa/inet.h>
 #include <time.h>
 #include <cjson/cJSON.h>
+#include "repository.h"
 
 #define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 8080
 #define BUFFER_SIZE 8192
 #define MAX_WEAPONS 5
-
-typedef struct {
-    int socket;
-    char ip[INET_ADDRSTRLEN];
-    int port;
-    int gold;
-    char equipped_weapon[256];
-    char *weapons[MAX_WEAPONS];
-    int damage;
-    int kill;
-    char passive[256]; 
-} player_state;
 
 void menu() {
     printf("===MAIN MENU===\n");

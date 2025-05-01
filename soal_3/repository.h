@@ -22,7 +22,4 @@ typedef struct {
     int kill; 
 } player_state;
 
-player_state *create_player(int socket, const char *ip, int port);
-char* player_stats(player_state *player);
-
 #endif
