@@ -94,6 +94,68 @@ void buy_weapon(Player *player, const char *json_str, int socket_fd) {
     cJSON_Delete(json);
 }
 
+void show_inventory(const char *json_str, int socket_fd) {
+    cJSON *json = cJSON_Parse(json_str);
+    if (!json) {
+        fprintf(stderr, "Invalid JSON\n");
+        return;
+    }
+
+    int array_size = cJSON_GetArraySize(json);
+    if (array_size == 0) {
+        printf("Inventory is empty.\n");
+        cJSON_Delete(json);
+        return;
+    }
+
+    printf("=== Your Inventory ===\n");
+    for (int i = 0; i < array_size; i++) {
+        cJSON *item = cJSON_GetArrayItem(json, i);
+        cJSON *name = cJSON_GetObjectItem(item, "name");
+        cJSON *damage = cJSON_GetObjectItem(item, "damage");
+        cJSON *price = cJSON_GetObjectItem(item, "price");
+        cJSON *passive = cJSON_GetObjectItem(item, "passive");
+
+        if (name && damage && price && passive) {
+            printf("%d. %s | Damage: %d | Price: %d | Passive: %s\n",
+                   i + 1,
+                   name->valuestring,
+                   damage->valueint,
+                   price->valueint,
+                   passive->valuestring);
+        }
+    }
+
+    int choice = 0;
+    printf("Choose weapon number to equip: ");
+    scanf("%d", &choice);
+
+    if (choice < 1 || choice > array_size) {
+        printf("Invalid choice.\n");
+        cJSON_Delete(json);
+        return;
+    }
+
+    // Get selected weapon name
+    cJSON *selected = cJSON_GetArrayItem(json, choice - 1);
+    cJSON *name = cJSON_GetObjectItem(selected, "name");
+    printf("selected %s\n", name->valuestring);
+    if (!name) {
+        printf("Weapon name not found.\n");
+        cJSON_Delete(json);
+        return;
+    }
+
+    // Send weapon name to server
+    send(socket_fd, name->valuestring, strlen(name->valuestring), 0);
+    
+    char response[BUFFER_SIZE] = {0};
+    recv(socket_fd, response, sizeof(response), 0);
+    printf("%s\n", response);
+
+    cJSON_Delete(json);
+}
+
 
 int main() {
     struct sockaddr_in server_addr;
@@ -140,6 +202,8 @@ int main() {
             player_stats(buffer, &player);
         } else if (choice == 2)  {
             buy_weapon(&player, buffer, socket_fd);
+        } else if (choice == 3) {
+            show_inventory(buffer, socket_fd);
         } else if (choice == 5) {
             printf("%s\n", buffer);
             return 0;

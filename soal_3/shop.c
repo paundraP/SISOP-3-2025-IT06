@@ -40,10 +40,16 @@ char *buy_weapon(player_state *player, weapon **weapons, char *weapon_name) {
         if (strcmp(weapon_name, weapons[i]->name) == 0) {
             selected = malloc(sizeof(weapon));
             if (!selected) return strdup("Memory allocation failed.\n");
-            strcpy(selected->name, weapons[i]->name);
+
+            // Copy name and passive safely using strncpy
+            strncpy(selected->name, weapons[i]->name, sizeof(selected->name) - 1);
+            selected->name[sizeof(selected->name) - 1] = '\0';  // Ensure null-termination
+
+            strncpy(selected->passive, weapons[i]->passive, sizeof(selected->passive) - 1);
+            selected->passive[sizeof(selected->passive) - 1] = '\0';  // Ensure null-termination
+
             selected->damage = weapons[i]->damage;
             selected->price = weapons[i]->price;
-            strcpy(selected->passive, weapons[i]->passive);
             break;
         }
     }

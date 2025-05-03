@@ -48,7 +48,7 @@ player_state *create_player(int socket, const char *ip, int port) {
 }
 
 
-char* player_stats(player_state *player) {
+char *player_stats(player_state *player) {
     cJSON *json = cJSON_CreateObject();
     cJSON_AddNumberToObject(json, "gold", player->gold);
     cJSON_AddStringToObject(json, "equipped_weapon", player->equipped_weapon->name);
@@ -61,7 +61,44 @@ char* player_stats(player_state *player) {
     return json_str;
 }
 
-void* client_handler(void* arg) {
+char *inventory(player_state *player) {
+    cJSON *json = cJSON_CreateArray();
+
+    for (int i = 0; i < 5; i++) {
+        if (player->weapon_repository[i] != NULL) {
+            cJSON *w = cJSON_CreateObject();
+            cJSON_AddStringToObject(w, "name", player->weapon_repository[i]->name);
+            cJSON_AddNumberToObject(w, "damage", player->weapon_repository[i]->damage);
+            cJSON_AddNumberToObject(w, "price", player->weapon_repository[i]->price);
+            cJSON_AddStringToObject(w, "passive", strlen(player->weapon_repository[i]->passive) ? player->weapon_repository[i]->passive : "None");
+            cJSON_AddItemToArray(json, w);
+        } else {
+            break;
+        }
+    }
+    char *json_str = cJSON_PrintUnformatted(json);
+    cJSON_Delete(json);
+    return json_str;
+}
+
+char *equip_weapon(player_state *player, char *weapon_name) {
+    printf("want to change their weapon to %s", weapon_name);
+    for (int i = 0; i < MAX_WEAPONS; i++) {
+        printf("weapon name: %s\n", player->weapon_repository[i]->name);
+        if (player->weapon_repository[i] &&
+            strcmp(weapon_name, player->weapon_repository[i]->name) == 0) {
+
+            player->equipped_weapon = player->weapon_repository[i];  // ✅ assign directly
+            return strdup("Weapon changed successfully!\n");
+        }
+    }
+
+    return strdup("Weapon not found.\n");
+}
+
+
+
+void *client_handler(void* arg) {
     player_state* player = (player_state*)arg;
     weapon *weapons[] = { 
         create("Pentung", 500, 1000, "+50% Critical Damage"),
@@ -97,6 +134,22 @@ void* client_handler(void* arg) {
             char *response = buy_weapon(player, weapons, weapon_name);
             send(player->socket, response, strlen(response), 0);
 
+            free(response);
+        } else if (strcmp(cmd, "3") == 0) {
+            char *json = inventory(player);
+            send(player->socket, json, strlen(json), 0);
+            free(json);
+
+            char weapon_name[BUFFER_SIZE];
+            int recv_len = recv(player->socket, weapon_name, sizeof(weapon_name), 0);
+            if (recv_len == 0) {
+                perror("recv failed or connection closed");
+                return NULL;
+            }
+
+            char *response = equip_weapon(player, weapon_name);
+
+            send(player->socket, response, strlen(response), 0);
             free(response);
         } else if (strcmp(cmd, "5") == 0) {
             char *response = "Bye!";
