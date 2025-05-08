@@ -10,7 +10,7 @@ Repository ini berisi hasil pengerjaan Praktikum Sistem Operasi 2025 Modul 3
 
 ### SOAL 2 (Putri Joselina Silitonga)
 
-## Delivery_agent
+# Delivery_agent
 
 1. download_file — Mengunduh File CSV
 
@@ -132,7 +132,7 @@ int main() {
 ```
 Fungsi main mengatur shared memory, memanggil fungsi-fungsi utama, dan menjalankan tiga thread agen pengiriman.
 
-## dispacther.c 
+# dispatcher.c 
 1. Read Share Memory
 ```
 void read_shared_memory() {
