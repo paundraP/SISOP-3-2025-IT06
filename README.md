@@ -7,13 +7,63 @@ Repository ini berisi hasil pengerjaan Praktikum Sistem Operasi 2025 Modul 3
 | Paundra Pujo Darmawan    | 5027241008 |
 | Putri Joselina Silitonga | 5027241116 |
 
-### SOAL 1 (Paundra Pujo Darmawan)
+# SOAL 1 (Paundra Pujo Darmawan)
 
-Pada soal ini, kita diminta untuk membuat
+Berikut adalah penjelasan yang lebih panjang dan lengkap berdasarkan deskripsi singkat yang kamu berikan:
+
+Dalam soal ini, kita diminta untuk membuat sebuah simulasi sistem upload dan download file antara client dan server menggunakan _socket programming_ dengan metode _Remote Procedure Call_ (RPC). Sistem ini memiliki dua peran utama yaitu sebagai **server** (`image_server.c`) dan **client** (`image_client.c`). Masing-masing file memiliki tanggung jawab dan alur kerja yang spesifik untuk menangani proses pertukaran file.
+
+### Fitur Utama
+
+Sistem ini menyediakan dua fitur utama:
+
+1. **Upload File yang Terenkripsi**
+2. **Download File yang Sudah Terdekripsi**
+
+### Upload File yang Terenkripsi
+
+Proses upload dimulai dari sisi client, di mana file yang akan dikirimkan sudah dalam bentuk terenkripsi (biasanya hasil dari proses encoding dan manipulasi data sebelumnya). File ini kemudian dikirimkan ke server melalui koneksi socket. Di sisi server, fungsi yang menangani proses ini adalah:
+
+```c
+void upload_handler(int socket_fd)
+```
+
+Fungsi ini akan menerima data file yang telah terenkripsi dari client. Data tersebut kemudian diproses lebih lanjut untuk dilakukan dekripsi. Proses dekripsi ini dilakukan oleh fungsi terpisah di dalam server, yaitu:
+
+```c
+void decrypt_service(int client_socket, const char *data)
+```
+
+Fungsi `decrypt_service` bertanggung jawab untuk melakukan dua tahap dekripsi:
+
+- **Reverse**: Membalikkan string dari file yang diterima (dengan asumsi proses enkripsi melibatkan pembalikan urutan karakter).
+- **Decode Hexadecimal**: Mengubah setiap pasangan karakter heksadesimal menjadi bentuk aslinya (karakter ASCII). Ini diasumsikan karena data dienkripsi menjadi bentuk heksadesimal sebelum dikirim.
+
+Setelah proses dekripsi selesai, hasilnya akan disimpan di direktori:
+
+```
+server/database/
+```
+
+File ini sekarang sudah dalam bentuk asli dan siap untuk didownload kembali oleh client.
+
+### Download File yang Sudah Terdekripsi
+
+Proses download dilakukan dari sisi client dengan meminta file yang telah berhasil didekripsi dan disimpan di server. Permintaan ini ditangani oleh fungsi:
+
+```c
+void download_handler(int socket_fd)
+```
+
+Fungsi ini akan mengirim permintaan melalui socket ke server. Server kemudian mencari file yang dimaksud dalam direktori `server/database/`, dan apabila file ditemukan, server akan mengirimkannya kembali ke client melalui socket.
+
+Pengiriman file ini menggunakan prinsip **Remote Procedure Call (RPC)**, di mana client cukup memanggil fungsi yang seolah-olah berada di lokal padahal sebenarnya dijalankan di sisi server. Ini memberikan abstraksi bahwa proses komunikasi antar proses jarak jauh dapat diperlakukan seperti pemanggilan fungsi biasa.
+
+Setelah file diterima di sisi client, file akan disimpan secara lokal dalam struktur direktori client, dan dapat dibuka atau digunakan sebagaimana mestinya.
 
 # SOAL 2 (Putri Joselina Silitonga)
 
-# Delivery_agent
+## Delivery_agent
 
 1. download_file — Mengunduh File CSV
 
@@ -145,7 +195,7 @@ int main() {
 
 Fungsi main mengatur shared memory, memanggil fungsi-fungsi utama, dan menjalankan tiga thread agen pengiriman.
 
-# dispatcher.c
+## dispatcher.c
 
 1. Read Share Memory
 
@@ -252,7 +302,7 @@ int main(int argc, char* argv[]) {
 
 Fungsinya untuk mengatur alur utama program, membaca shared memory, dan memproses perintah command line (-deliver, -status, atau -list).
 
-### SOAL 3 (Paundra Pujo Darmawan)
+# SOAL 3 (Paundra Pujo Darmawan)
 
 To compile the dungeon
 
@@ -266,10 +316,87 @@ To compile the player
 gcc player.c -o player -I/opt/homebrew/include -L/opt/homebrew/lib -lcjson
 ```
 
+# SOAL 3 (Paundra Pujo Darmawan)
 
-## SOAL 4 (Putri Joselina Silitonga) 
-# system.c 
-1. Log action 
+Pada soal kali ini, kita sekali lagi mengimplementasikan RPC menggunakan socket dan juga tambahan thread untuk membagi memori, dikarenakan banyak user yang dapat mengakses server (dungeon.c).
+
+#### `dungeon.h`
+
+Header file ini mendefinisikan dua `struct` penting:
+
+- `weapon`: berisi atribut senjata (`name`, `price`, `damage`, `passive`).
+- `player_state`: menyimpan informasi pemain termasuk socket, IP, port, gold, senjata yang dipakai, repository senjata yang dimiliki, dan jumlah kill.
+
+#### `dungeon.c`
+
+Ini adalah server-side logic. Fungsi-fungsi utamanya:
+
+##### `create_player`
+
+Membuat instance pemain baru. Secara default pemain:
+
+- Punya 500 gold.
+- Memiliki senjata awal berupa "Knife".
+- Weapon repository dimulai kosong, kecuali slot pertama diisi "Knife".
+
+##### `player_stats`
+
+Mengembalikan informasi pemain dalam format JSON:
+
+```json
+{
+  "gold": 500,
+  "equipped_weapon": "Knife",
+  "damage": 10,
+  "kill": 0,
+  "passive": "None"
+}
+```
+
+##### `inventory`
+
+Mengirim seluruh senjata yang dimiliki pemain dalam bentuk JSON array.
+
+##### `equip_weapon`
+
+Mengganti senjata aktif jika senjata tersedia di inventory.
+
+##### `client_handler`
+
+Fungsi yang menangani tiap client secara paralel dengan thread. Mekanismenya:
+
+1. Menangkap perintah dari client (`1`, `2`, `3`, `5`).
+2. Memanggil fungsi sesuai perintah:
+
+   - `1`: kirim stats.
+   - `2`: kirim list senjata, lalu proses pembelian.
+   - `3`: kirim inventory, lalu proses pergantian senjata.
+   - `5`: keluar dari game.
+
+##### `main`
+
+- Membuat socket dan listen di port 8080.
+- Untuk tiap koneksi yang masuk:
+
+  - Buat thread baru.
+  - Panggil `client_handler`.
+
+#### `player.c`
+
+Ini adalah client-side logic.
+
+##### Fungsi Utama:
+
+- `menu`: Menampilkan pilihan menu ke pengguna.
+- `player_stats`: Parsing JSON dari server untuk ditampilkan ke pemain.
+- `buy_weapon`: Akan memproses pembelian senjata (kode terpotong di akhir).
+
+# SOAL 4 (Putri Joselina Silitonga)
+
+## system.c
+
+1. Log action
+
 ```
 void log_action(const char *action) {
     time_t now = time(NULL);
@@ -281,7 +408,8 @@ void log_action(const char *action) {
 }
 ```
 
-2. Display Hunter Info 
+2. Display Hunter Info
+
 ```
 void display_hunter_info(struct SystemData *data) {
     sem_wait(sem);
@@ -303,9 +431,11 @@ void display_hunter_info(struct SystemData *data) {
     sem_post(sem);
 }
 ```
+
 Fungsinya untuk menampilkan informasi semua hunter (nama, level, exp, atk, hp, def, banned/unbanned).
 
 3. Generate Dungeon
+
 ```
 void generate_dungeon(struct SystemData *data) {
     sem_wait(sem);
@@ -362,9 +492,11 @@ void generate_dungeon(struct SystemData *data) {
     sem_post(sem);
 }
 ```
+
 Fungsinya untuk membuat dungeon baru dengan nama acak, level minimum, dan reward, menyimpannya di shared memory.
 
-4. Display Dungeon Info 
+4. Display Dungeon Info
+
 ```
 void display_dungeon_info(struct SystemData *data) {
     sem_wait(sem);
@@ -373,7 +505,7 @@ void display_dungeon_info(struct SystemData *data) {
         printf("%sDungeon %d:%s\n", WHITE, i + 1, RESET);
         printf("  Name: %s\n", data->dungeons[i].name);
         printf("  Minimum Level: %d\n", data->dungeons[i].min_level);
-        printf("  Reward - EXP: %d, ATK: %d, HP: %d, DEF: %d\n", 
+        printf("  Reward - EXP: %d, ATK: %d, HP: %d, DEF: %d\n",
                data->dungeons[i].exp, data->dungeons[i].atk, data->dungeons[i].hp, data->dungeons[i].def);
         printf("  Key: %d\n", data->dungeons[i].shm_key);
     }
@@ -384,9 +516,11 @@ void display_dungeon_info(struct SystemData *data) {
     sem_post(sem);
 }
 ```
-Fungsinya untuk menampilkan informasi semua dungeon (nama, level minimum, reward, key). 
 
-5. Ban Hunter 
+Fungsinya untuk menampilkan informasi semua dungeon (nama, level minimum, reward, key).
+
+5. Ban Hunter
+
 ```
 void ban_hunter(struct SystemData *data) {
     printf("\nEnter username to ban/unban: ");
@@ -398,7 +532,7 @@ void ban_hunter(struct SystemData *data) {
     for (int i = 0; i < data->num_hunters; i++) {
         if (strcmp(data->hunters[i].username, username) == 0) {
             data->hunters[i].banned = !data->hunters[i].banned;
-            printf("%s[SUCCESS] %s is now %sbanned%s\n", YELLOW, username, 
+            printf("%s[SUCCESS] %s is now %sbanned%s\n", YELLOW, username,
                    data->hunters[i].banned ? "" : "un", RESET);
             char log_msg[100];
             snprintf(log_msg, 100, "%s %s", username, data->hunters[i].banned ? "banned" : "unbanned");
@@ -412,9 +546,11 @@ void ban_hunter(struct SystemData *data) {
     sem_post(sem);
 }
 ```
+
 Fungsinya untuk memban atau membuka ban hunter tertentu.
 
-6. Reset Hunter 
+6. Reset Hunter
+
 ```
 void reset_hunter(struct SystemData *data) {
     printf("\nEnter username to reset: ");
@@ -443,9 +579,11 @@ void reset_hunter(struct SystemData *data) {
     sem_post(sem);
 }
 ```
+
 Fungsinya untuk mereset stats hunter ke nilai awal.
 
 7. Clean up
+
 ```
 void cleanup(int sig) {
     sem_close(sem);
@@ -461,9 +599,11 @@ void cleanup(int sig) {
     exit(0);
 }
 ```
+
 Fungsinya untuk membersihkan semua shared memory dan semaphore saat program dihentikan.
 
-8. Main 
+8. Main
+
 ```
 int main() {
     srand(time(NULL));
@@ -493,11 +633,13 @@ int main() {
     }
 }
 ```
+
 Fungsinya untuk mengatur alur utama program server, menyediakan menu admin.
 
-# hunter.c
+## hunter.c
 
 1. Log Action
+
 ```
 void log_action(const char *action) {
     time_t now = time(NULL);
@@ -508,9 +650,11 @@ void log_action(const char *action) {
     fclose(log_file);
 }
 ```
+
 Fungsinya untuk mencatat aksi (misalnya, registrasi, login, raid) ke file hunter.log dengan timestamp.
 
 2. Notification Thread
+
 ```
 void *notification_thread(void *arg) {
     struct SystemData *data = (struct SystemData *)arg;
@@ -518,7 +662,7 @@ void *notification_thread(void *arg) {
         sem_wait(sem);
         if (data->num_dungeons > 0) {
             int idx = data->current_notification_index % data->num_dungeons;
-            printf("%s\n✨ [NOTIFICATION] New Dungeon: %s (minimum level %d opened!) ✨%s\n", 
+            printf("%s\n✨ [NOTIFICATION] New Dungeon: %s (minimum level %d opened!) ✨%s\n",
                    YELLOW, data->dungeons[idx].name, data->dungeons[idx].min_level, RESET);
             data->current_notification_index++;
             char log_msg[100];
@@ -531,9 +675,11 @@ void *notification_thread(void *arg) {
     return NULL;
 }
 ```
+
 Fungsinya untuk menjalankan thread yang menampilkan notifikasi tentang dungeon yang tersedia setiap 3 detik, jika fitur notifikasi diaktifkan.
 
-3. List Dungeons 
+3. List Dungeons
+
 ```
 void list_dungeons(struct SystemData *data, struct Hunter *hunter) {
     sem_wait(sem);
@@ -556,9 +702,11 @@ void list_dungeons(struct SystemData *data, struct Hunter *hunter) {
     getchar();
 }
 ```
+
 Fungsi ini untuk menampilkan daftar dungeon yang tersedia untuk hunter berdasarkan level mereka.
 
-4. Raid  Dungeon 
+4. Raid Dungeon
+
 ```
 void raid_dungeon(struct SystemData *data, struct Hunter *hunter) {
     if (hunter->banned) {
@@ -663,9 +811,11 @@ void raid_dungeon(struct SystemData *data, struct Hunter *hunter) {
     sem_post(sem);
 }
 ```
+
 Fungsi ini untuk memungkinkan hunter untuk menaklukkan dungeon yang sesuai dengan level mereka, mendapatkan reward, dan menghapus dungeon dari sistem.
 
 5. Battle Hunter
+
 ```
 void battle_hunter(struct SystemData *data, struct Hunter *hunter, int hunter_index) {
     if (hunter->banned) {
@@ -761,9 +911,11 @@ void battle_hunter(struct SystemData *data, struct Hunter *hunter, int hunter_in
     sem_post(sem);
 }
 ```
+
 Fungsi ini untuk memungkinkan hunter untuk bertarung dengan hunter lain, dengan pemenang mengambil stats lawan dan yang kalah dihapus dari sistem.
 
-6. Main 
+6. Main
+
 ```
 int main() {
     srand(time(NULL));
@@ -836,6 +988,5 @@ int main() {
     }
 }
 ```
+
 Fungsi ini untuk mengatur alur utama program client, menyediakan menu untuk registrasi, login, dan aksi hunter (list, raid, battle, notifikasi).
-
-
