@@ -241,6 +241,12 @@ To compile the dungeon
 gcc shop.c dungeon.c -o dungeon -I/opt/homebrew/include -L/opt/homebrew/lib -lcjson
 ```
 
+To compile the player
+
+```bash
+gcc player.c -o player -I/opt/homebrew/include -L/opt/homebrew/lib -lcjson
+```
+
 
 ## SOAL 4 (Putri Joselina Silitonga) 
 # system.c 
@@ -813,8 +819,4 @@ int main() {
 ```
 Fungsi ini untuk mengatur alur utama program client, menyediakan menu untuk registrasi, login, dan aksi hunter (list, raid, battle, notifikasi).
 
-To compile the player
 
-```bash
-gcc player.c -o player -I/opt/homebrew/include -L/opt/homebrew/lib -lcjson
-```
