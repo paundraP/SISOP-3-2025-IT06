@@ -7,6 +7,9 @@ Repository ini berisi hasil pengerjaan Praktikum Sistem Operasi 2025 Modul 3
 | Paundra Pujo Darmawan    | 5027241008 |
 | Putri Joselina Silitonga | 5027241116 |
 
+### SOAL 1 (Paundra Pujo Darmawan)
+
+Pada soal ini, kita diminta untuk membuat
 
 # SOAL 2 (Putri Joselina Silitonga)
 
@@ -25,6 +28,7 @@ void download_file() {
 Fungsi ini mengunduh file delivery_order.csv dari Google Drive menggunakan wget.
 
 2. read_csv — Membaca dan Memasukkan Data ke Shared Memory
+
 ```
 void read_csv() {
     FILE* fp = fopen("delivery_order.csv", "r");
@@ -44,9 +48,11 @@ void read_csv() {
     fclose(fp);
 }
 ```
+
 Fungsi ini membaca file delivery_order.csv, mem-parse baris per baris, dan menyimpan data ke array shared memory.
 
 3. log_delivery — Mencatat Log Pengiriman
+
 ```
 void log_delivery(const char* agent, const char* name, const char* address) {
     FILE* log_file = fopen("delivery.log", "a");
@@ -60,9 +66,11 @@ void log_delivery(const char* agent, const char* name, const char* address) {
     }
 }
 ```
+
 Fungsi ini membuat entri log setiap kali sebuah paket Express berhasil dikirim.
 
 4. all_express_delivered — Mengecek Status Semua Order Express
+
 ```
 int all_express_delivered() {
     for (int i = 0; i < order_count; i++) {
@@ -73,9 +81,11 @@ int all_express_delivered() {
     return 1;
 }
 ```
+
 Fungsi ini mengembalikan 1 jika semua pesanan bertipe Express telah dikirim, atau 0 jika masih ada yang tersisa.
 
 5. agent_thread — Thread Agen Pengiriman
+
 ```
 void* agent_thread(void* arg) {
     const char* agent_id = (const char*)arg;
@@ -101,9 +111,11 @@ void* agent_thread(void* arg) {
     return NULL;
 }
 ```
+
 Thread ini bertugas mengirimkan paket secara paralel. Setiap agen mengirimkan pesanan Express secara bergiliran.
 
-6. main 
+6. main
+
 ```
 int main() {
     int shm_fd = shm_open(SHM_NAME, O_CREAT | O_RDWR, 0666);
@@ -130,10 +142,13 @@ int main() {
     return 0;
 }
 ```
+
 Fungsi main mengatur shared memory, memanggil fungsi-fungsi utama, dan menjalankan tiga thread agen pengiriman.
 
-# dispatcher.c 
+# dispatcher.c
+
 1. Read Share Memory
+
 ```
 void read_shared_memory() {
     int shm_fd = shm_open(SHM_NAME, O_RDWR, 0666);
@@ -154,10 +169,11 @@ void read_shared_memory() {
     }
 }
 ```
+
 Fungsinya untuk membaca shared memory yang berisi daftar pesanan dan menghitung jumlah pesanan (order_count).
 
+2. Log Delivery
 
-2. Log Delivery 
 ```
 void log_delivery(const char* agent, const char* name, const char* address, const char* type) {
     FILE* log_file = fopen("delivery.log", "a");
@@ -170,10 +186,12 @@ void log_delivery(const char* agent, const char* name, const char* address, cons
         fclose(log_file);
     }
 }
-``` 
+```
+
 Fungsinya untuk mencatat pengiriman paket ke file delivery.log dengan timestamp, nama agen, tipe paket, nama penerima, dan alamat.
 
 3. main
+
 ```
 int main(int argc, char* argv[]) {
     read_shared_memory();
@@ -231,9 +249,10 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 ```
+
 Fungsinya untuk mengatur alur utama program, membaca shared memory, dan memproses perintah command line (-deliver, -status, atau -list).
 
-## SOAL 3 (Paundra Pujo Darmawan)
+### SOAL 3 (Paundra Pujo Darmawan)
 
 To compile the dungeon
 
