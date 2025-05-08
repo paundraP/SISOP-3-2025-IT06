@@ -8,7 +8,7 @@ Repository ini berisi hasil pengerjaan Praktikum Sistem Operasi 2025 Modul 3
 | Putri Joselina Silitonga | 5027241116 |
 
 
-#SOAL 2 (Putri Joselina Silitonga)
+# SOAL 2 (Putri Joselina Silitonga)
 
 # Delivery_agent
 
